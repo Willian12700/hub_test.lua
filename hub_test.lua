@@ -1,5 +1,5 @@
 --[[ 
-    SCRIPT ATUALIZADO V2 - GUI FIX
+    SCRIPT V3 - MENU FIX + AIMBOT KEYBIND
     Link Raw: https://raw.githubusercontent.com/Willian12700/hub_test.lua/refs/heads/main/hub_test.lua
 ]]
 
@@ -15,173 +15,206 @@ local NomeDaFaca = "Knife"
 local NomeDaArma = "Gun" 
 -- --------------------
 
+-- Variáveis de Estado
 local espAtivado = false
 local autoGunAtivado = false
-local aimbotAtivado = false
-local targetAimbot = nil
+local aimbotAtivado = false -- Agora serve para ativar a funcionalidade das teclas
+local targetMurder = nil -- Guarda quem é o Murder
 
--- 1. DELETAR GUI ANTIGA SE EXISTIR
-if LocalPlayer.PlayerGui:FindFirstChild("HubFinal") then
-	LocalPlayer.PlayerGui.HubFinal:Destroy()
+-- 1. LIMPEZA DE GUI ANTIGA
+if LocalPlayer.PlayerGui:FindFirstChild("HubV3") then
+	LocalPlayer.PlayerGui.HubV3:Destroy()
 end
 
--- 2. CRIAR A NOVA GUI
+-- 2. CRIAÇÃO DA GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "HubFinal"
+screenGui.Name = "HubV3"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- Fundo Principal
 local frame = Instance.new("Frame")
 frame.Name = "MainFrame"
-frame.Size = UDim2.new(0, 220, 0, 200) -- Altura levemente maior
+frame.Size = UDim2.new(0, 220, 0, 210)
 frame.Position = UDim2.new(0.1, 0, 0.2, 0)
-frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
+frame.Visible = true -- Começa visível
 frame.Parent = screenGui
 
-local uiCorner = Instance.new("UICorner")
-uiCorner.CornerRadius = UDim.new(0, 8)
-uiCorner.Parent = frame
+local uiCorner = Instance.new("UICorner"); uiCorner.CornerRadius = UDim.new(0, 8); uiCorner.Parent = frame
 
--- Título (Fica solto no topo)
+-- Título
 local titulo = Instance.new("TextLabel")
-titulo.Text = "MM2 HUB V2"
+titulo.Text = "MM2 HUB V3"
 titulo.Size = UDim2.new(1, 0, 0, 30)
-titulo.Position = UDim2.new(0, 0, 0, 5) -- 5px do topo
 titulo.BackgroundTransparency = 1
-titulo.TextColor3 = Color3.fromRGB(255, 0, 0)
+titulo.TextColor3 = Color3.fromRGB(255, 50, 50)
 titulo.Font = Enum.Font.GothamBold
-titulo.TextSize = 16
+titulo.TextSize = 18
 titulo.Parent = frame
 
--- Container dos Botões (Para organizar só os botões)
+-- Instrução
+local subTitulo = Instance.new("TextLabel")
+subTitulo.Text = "Toggle Menu: 'E' | Shoot: 'Q'/'Ctrl'"
+subTitulo.Size = UDim2.new(1, 0, 0, 15)
+subTitulo.Position = UDim2.new(0, 0, 0, 25)
+subTitulo.BackgroundTransparency = 1
+subTitulo.TextColor3 = Color3.fromRGB(150, 150, 150)
+subTitulo.Font = Enum.Font.Code
+subTitulo.TextSize = 11
+subTitulo.Parent = frame
+
+-- Container Botões
 local container = Instance.new("Frame")
-container.Name = "ButtonContainer"
-container.Size = UDim2.new(1, -20, 1, -40) -- Largura total menos margem, Altura menos título
-container.Position = UDim2.new(0, 10, 0, 40) -- Abaixo do título
+container.Name = "Container"
+container.Size = UDim2.new(1, -20, 1, -50)
+container.Position = UDim2.new(0, 10, 0, 50)
 container.BackgroundTransparency = 1
 container.Parent = frame
 
 local layout = Instance.new("UIListLayout")
-layout.Parent = container
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.Padding = UDim.new(0, 8) -- Espaço entre botões
-layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Parent = container; layout.HorizontalAlignment = Enum.HorizontalAlignment.Center; layout.Padding = UDim.new(0, 8); layout.SortOrder = Enum.SortOrder.LayoutOrder
 
--- Função de criar botão
 local function criarBotao(texto, ordem)
 	local btn = Instance.new("TextButton")
-	btn.Name = texto
 	btn.LayoutOrder = ordem
-	btn.Size = UDim2.new(1, 0, 0, 35) -- Preenche a largura do container
-	btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	btn.Size = UDim2.new(1, 0, 0, 30)
+	btn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 	btn.Text = texto
 	btn.TextColor3 = Color3.fromRGB(255, 255, 255)
 	btn.Font = Enum.Font.Gotham
-	btn.TextSize = 14
+	btn.TextSize = 13
 	btn.Parent = container
-	
-	local c = Instance.new("UICorner")
-	c.CornerRadius = UDim.new(0, 6)
-	c.Parent = btn
+	local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = btn
 	return btn
 end
 
--- Criando os Botões
 local btnESP = criarBotao("ESP: [OFF]", 1)
 local btnGun = criarBotao("Auto Gun: [OFF]", 2)
-local btnAim = criarBotao("Aimbot: [OFF]", 3)
-local btnClose = criarBotao("Fechar Menu", 4)
-btnClose.BackgroundColor3 = Color3.fromRGB(150, 0, 0) -- Botão fechar vermelho escuro
+local btnAim = criarBotao("Aim Key (Q/Ctrl): [OFF]", 3)
+local btnClose = criarBotao("Fechar", 4)
+btnClose.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
 
--- --- LÓGICA (TP TAKE + ESP) ---
+-- ============================================================================
+-- LÓGICA DE FUNCIONALIDADES
+-- ============================================================================
 
-local function TPFastGetGun(gun)
-	local char = LocalPlayer.Character
-	if char and char:FindFirstChild("HumanoidRootPart") and gun:FindFirstChild("Handle") then
-		local root = char.HumanoidRootPart
-		local currentPos = root.CFrame
-		
-		-- Vai
-		root.CFrame = gun.Handle.CFrame
-		RunService.Heartbeat:Wait() -- Espera physics frame
-		
-		-- Volta
-		root.CFrame = currentPos
+-- A. TECLA "E" PARA ABRIR/FECHAR MENU
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if not gameProcessed and input.KeyCode == Enum.KeyCode.E then
+		frame.Visible = not frame.Visible
 	end
-end
+end)
 
+-- B. ESP + DETECTAR MURDER
 RunService.RenderStepped:Connect(function()
-	-- ESP
 	if espAtivado then
+		local foundMurder = nil
 		for _, v in pairs(Players:GetPlayers()) do
-			if v ~= LocalPlayer and v.Character then
-				local hl = v.Character:FindFirstChild("ESP_MM2")
-				if not hl then 
-					hl = Instance.new("Highlight")
-					hl.Name = "ESP_MM2"
-					hl.Adornee = v.Character
-					hl.FillTransparency = 0.5
-					hl.Parent = v.Character 
+			if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+				-- Cria Highlight se não existir
+				if not v.Character:FindFirstChild("ESP_V3") then
+					local hl = Instance.new("Highlight")
+					hl.Name = "ESP_V3"; hl.Adornee = v.Character; hl.FillTransparency = 0.5; hl.Parent = v.Character
 				end
 				
+				local hl = v.Character.ESP_V3
 				local cor = Color3.fromRGB(0, 255, 0) -- Inocente
-				if v.Backpack:FindFirstChild(NomeDaFaca) or v.Character:FindFirstChild(NomeDaFaca) then
-					cor = Color3.fromRGB(255, 0, 0) -- Murder
-					targetAimbot = v.Character
-				elseif v.Backpack:FindFirstChild(NomeDaArma) or v.Character:FindFirstChild(NomeDaArma) then
-					cor = Color3.fromRGB(0, 0, 255) -- Xerife
+				
+				-- Checa Inventário
+				local hasKnife = v.Backpack:FindFirstChild(NomeDaFaca) or v.Character:FindFirstChild(NomeDaFaca)
+				local hasGun = v.Backpack:FindFirstChild(NomeDaArma) or v.Character:FindFirstChild(NomeDaArma)
+				
+				if hasKnife then
+					cor = Color3.fromRGB(255, 0, 0)
+					foundMurder = v.Character -- Salva quem é o Murder
+				elseif hasGun then
+					cor = Color3.fromRGB(0, 0, 255)
 				end
+				
 				hl.FillColor = cor; hl.OutlineColor = cor
 			end
 		end
-	end
-
-	-- AUTO GUN
-	if autoGunAtivado then
-		local droppedGun = Workspace:FindFirstChild(NomeDaArma)
-		if droppedGun and droppedGun:IsA("Tool") then
-			TPFastGetGun(droppedGun)
-		end
-	end
-
-	-- AIMBOT
-	if aimbotAtivado and targetAimbot and targetAimbot:FindFirstChild("Head") then
-		Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetAimbot.Head.Position)
+		targetMurder = foundMurder -- Atualiza a variável global
 	end
 end)
 
--- --- EVENTOS DOS BOTÕES ---
-btnESP.MouseButton1Click:Connect(function() 
+-- C. AUTO GUN (Teleporte Melhorado)
+RunService.RenderStepped:Connect(function()
+	if autoGunAtivado then
+		local gun = Workspace:FindFirstChild(NomeDaArma)
+		if gun and gun:IsA("Tool") and gun:FindFirstChild("Handle") then
+			local char = LocalPlayer.Character
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				local root = char.HumanoidRootPart
+				
+				-- Salva posição e vai até a arma
+				local oldPos = root.CFrame
+				
+				-- Tenta teleportar várias vezes rápido num frame
+				for i = 1, 5 do
+					root.CFrame = gun.Handle.CFrame
+				end
+				
+				-- Volta
+				root.CFrame = oldPos
+			end
+		end
+	end
+end)
+
+-- D. AIMBOT (TECLAS Q ou CTRL)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	
+	-- Verifica se o Aimbot está ligado no menu e se apertou Q ou Ctrl
+	if aimbotAtivado and (input.KeyCode == Enum.KeyCode.Q or input.KeyCode == Enum.KeyCode.LeftControl) then
+		
+		-- Verifica se eu tenho a arma EQUIPADA
+		local char = LocalPlayer.Character
+		local myGun = char and char:FindFirstChild(NomeDaArma)
+		
+		if myGun and targetMurder and targetMurder:FindFirstChild("Head") then
+			-- 1. Mira na cabeça do Murder
+			Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetMurder.Head.Position)
+			
+			-- 2. Atira (Ativa a arma)
+			myGun:Activate()
+		end
+	end
+end)
+
+-- ============================================================================
+-- BOTÕES DO MENU
+-- ============================================================================
+btnESP.MouseButton1Click:Connect(function()
 	espAtivado = not espAtivado
 	btnESP.Text = espAtivado and "ESP: [ON]" or "ESP: [OFF]"
-	btnESP.TextColor3 = espAtivado and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 255)
+	btnESP.TextColor3 = espAtivado and Color3.fromRGB(0, 255, 0) or Color3.white
 	if not espAtivado then
+		-- Limpa o ESP visualmente
 		for _, v in pairs(Players:GetPlayers()) do
-			if v.Character and v.Character:FindFirstChild("ESP_MM2") then v.Character.ESP_MM2:Destroy() end
+			if v.Character and v.Character:FindFirstChild("ESP_V3") then v.Character.ESP_V3:Destroy() end
 		end
+		targetMurder = nil
 	end
 end)
 
-btnGun.MouseButton1Click:Connect(function() 
+btnGun.MouseButton1Click:Connect(function()
 	autoGunAtivado = not autoGunAtivado
 	btnGun.Text = autoGunAtivado and "Auto Gun: [ON]" or "Auto Gun: [OFF]"
-	btnGun.TextColor3 = autoGunAtivado and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 255)
+	btnGun.TextColor3 = autoGunAtivado and Color3.fromRGB(0, 255, 0) or Color3.white
 end)
 
-btnAim.MouseButton1Click:Connect(function() 
+btnAim.MouseButton1Click:Connect(function()
 	aimbotAtivado = not aimbotAtivado
-	btnAim.Text = aimbotAtivado and "Aimbot: [ON]" or "Aimbot: [OFF]"
-	btnAim.TextColor3 = aimbotAtivado and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 255)
-	if not aimbotAtivado then targetAimbot = nil end
+	btnAim.Text = aimbotAtivado and "Aim Key (Q/Ctrl): [ON]" or "Aim Key (Q/Ctrl): [OFF]"
+	btnAim.TextColor3 = aimbotAtivado and Color3.fromRGB(0, 255, 0) or Color3.white
 end)
 
-btnClose.MouseButton1Click:Connect(function() 
+btnClose.MouseButton1Click:Connect(function()
 	screenGui:Destroy()
-	espAtivado = false
-	autoGunAtivado = false
-	aimbotAtivado = false
+	espAtivado = false; autoGunAtivado = false; aimbotAtivado = false
 end)
